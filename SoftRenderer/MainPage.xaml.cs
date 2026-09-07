@@ -1,8 +1,10 @@
 ﻿using SoftRenderer.Models;
+using SoftRenderer.Rendering;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Media;
 using SharpDX;
+using System.Diagnostics;
 
 namespace SoftRenderer
 {
@@ -12,7 +14,7 @@ namespace SoftRenderer
     public sealed partial class MainPage : Page
     {
         private Device device;
-        private Mesh mesh = new Mesh("Cube", 8);
+        private Mesh[] meshes;
         private Camera camera = new Camera();
 
         public MainPage()
@@ -21,21 +23,13 @@ namespace SoftRenderer
             Loaded += MainPage_Loaded;
         }
 
-        private void MainPage_Loaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        private async void MainPage_Loaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
         {
             WriteableBitmap bitmap = new WriteableBitmap(640, 480);
+            frontBuffer.Source = bitmap;
             device = new Device(bitmap);
 
-            frontBuffer.Source = bitmap;
-
-            mesh.vertices[0] = new Vector3(-1, 1, 1);
-            mesh.vertices[1] = new Vector3(1, 1, 1);
-            mesh.vertices[2] = new Vector3(-1, -1, 1);
-            mesh.vertices[3] = new Vector3(-1, -1, -1);
-            mesh.vertices[4] = new Vector3(-1, 1, -1);
-            mesh.vertices[5] = new Vector3(1, 1, -1);
-            mesh.vertices[6] = new Vector3(1, -1, 1);
-            mesh.vertices[7] = new Vector3(1, -1, -1);
+            meshes = await device.LoadJSONFileAsync("monkey.babylon");
 
             camera.position = new Vector3(0, 0, 10f);
             camera.target = Vector3.Zero;
@@ -46,9 +40,12 @@ namespace SoftRenderer
         private void CompositionTarget_Rendering(object? sender, object e)
         {
             device.Clear(0, 0, 0, 225);
-            mesh.rotation = new Vector3(mesh.rotation.X + 0.01f, mesh.rotation.Y + 0.01f, mesh.rotation.Z);
+            foreach (var mesh in meshes)
+            {
+                mesh.rotation = new Vector3(mesh.rotation.X + 0.01f, mesh.rotation.Y + 0.01f, mesh.rotation.Z);
+            }
 
-            device.Render(camera, mesh);
+            device.Render(camera, meshes);
             device.Present();
         }
     }
